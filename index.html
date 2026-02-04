@@ -19,23 +19,30 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  background: linear-gradient(270deg,#e8f0fe,#fce8e6,#e6f4ea);
+  background: linear-gradient(135deg,#e8f0fe,#fef7e0,#e6f4ea);
   background-size:400% 400%;
-  animation: rainbow 18s ease infinite;
+  animation: softFlow 20s ease infinite;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
 }
 
-@keyframes rainbow{
+@keyframes softFlow{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}
 }
 
+/* 🌈 RAINBOW MODE */
 body.rainbow{
   background: linear-gradient(270deg,
     #ff0080,#7928ca,#2afadf,#4facfe,#43e97b,#facc15,#ff0080);
   background-size:600% 600%;
-  animation: rainbow 10s ease infinite;
+  animation: rainbowFlow 10s ease infinite;
+}
+
+@keyframes rainbowFlow{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
 }
 
 #card{
@@ -61,14 +68,15 @@ canvas{
 
 #panel{
   background:#fff;
-  padding:24px 28px;
+  padding:26px 30px;
   border-radius:18px;
   box-shadow:0 25px 60px rgba(0,0,0,.3);
   text-align:center;
+  max-width:260px;
 }
 
 #panel h1{
-  margin:0 0 8px;
+  margin:0 0 6px;
   font-size:24px;
 }
 
@@ -78,7 +86,7 @@ canvas{
 }
 
 #panel button{
-  margin-top:12px;
+  margin-top:14px;
   padding:9px 22px;
   border:none;
   border-radius:999px;
@@ -134,8 +142,16 @@ const info = document.getElementById("info");
 const brand = document.getElementById("brand");
 const best = document.getElementById("best");
 
-const eatSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3");
-const overSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3");
+const savageMessages = [
+  "That was embarrassing 😬",
+  "Skill issue detected",
+  "Google Snake is laughing",
+  "My grandma plays better",
+  "Press Play and redeem yourself",
+  "Oof. That hurt to watch",
+  "Maybe try using your eyes",
+  "Snake deserves a better driver"
+];
 
 best.textContent = "Best: " + bestScore;
 
@@ -154,14 +170,17 @@ function start(){
 function gameOver(){
   running=false;
   clearInterval(loop);
-  overSound.play();
+
   if(score>bestScore){
     bestScore=score;
     localStorage.setItem("snake-best",bestScore);
   }
+
+  const msg = savageMessages[Math.floor(Math.random()*savageMessages.length)];
+
   title.textContent="Game Over";
-  info.textContent="Score: "+score;
-  best.textContent="Best: "+bestScore;
+  info.textContent=msg;
+  best.textContent="Score: "+score+" | Best: "+bestScore;
   brand.textContent="Snake game by Vrishab Varun";
   overlay.style.display="flex";
 }
@@ -204,7 +223,6 @@ function tick(){
   snake.unshift(head);
   if(head.x===food.x&&head.y===food.y){
     score++;
-    eatSound.play();
     food=randomFood();
   }else snake.pop();
 
@@ -227,24 +245,6 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowDown"&&dy===0){dx=0;dy=grid;}
   if(e.key==="ArrowLeft"&&dx===0){dx=-grid;dy=0;}
   if(e.key==="ArrowRight"&&dx===0){dx=grid;dy=0;}
-});
-
-// Mobile swipe
-let sx,sy;
-canvas.addEventListener("touchstart",e=>{
-  sx=e.touches[0].clientX;
-  sy=e.touches[0].clientY;
-});
-canvas.addEventListener("touchend",e=>{
-  let dxs=e.changedTouches[0].clientX-sx;
-  let dys=e.changedTouches[0].clientY-sy;
-  if(Math.abs(dxs)>Math.abs(dys)){
-    if(dxs>0&&dx===0){dx=grid;dy=0;}
-    if(dxs<0&&dx===0){dx=-grid;dy=0;}
-  }else{
-    if(dys>0&&dy===0){dx=0;dy=grid;}
-    if(dys<0&&dy===0){dx=0;dy=-grid;}
-  }
 });
 
 function toggleTheme(){

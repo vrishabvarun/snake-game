@@ -5,11 +5,6 @@
 <title>Snake</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-:root{
-  --card:#ffffff;
-  --board:#f1f3f4;
-}
-
 body{
   margin:0;
   height:100vh;
@@ -18,99 +13,53 @@ body{
   justify-content:center;
   background: linear-gradient(135deg,#e8f0fe,#fef7e0,#e6f4ea);
   background-size:400% 400%;
-  animation: bgFlow 18s ease infinite;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  animation:bg 18s ease infinite;
+  font-family:system-ui,Arial;
 }
-
-@keyframes bgFlow{
+@keyframes bg{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}
 }
-
 body.rainbow{
-  background: linear-gradient(270deg,
-    #ff0080,#7928ca,#2afadf,#4facfe,#43e97b,#facc15,#ff0080);
+  background:linear-gradient(270deg,#ff0080,#7928ca,#2afadf,#4facfe,#43e97b,#facc15,#ff0080);
   background-size:600% 600%;
-  animation: rainbow 9s ease infinite;
+  animation:bg 9s ease infinite;
 }
-
-@keyframes rainbow{
-  0%{background-position:0% 50%}
-  50%{background-position:100% 50%}
-  100%{background-position:0% 50%}
-}
-
 #card{
-  background:var(--card);
+  background:#fff;
   border-radius:20px;
   padding:18px;
   box-shadow:0 30px 70px rgba(0,0,0,.25);
   position:relative;
 }
-
-canvas{
-  background:var(--board);
-  border-radius:16px;
-}
-
+canvas{background:#f1f3f4;border-radius:16px}
 #overlay{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
 }
-
 #panel{
   background:#fff;
   padding:26px 30px;
   border-radius:18px;
   box-shadow:0 25px 60px rgba(0,0,0,.3);
   text-align:center;
-  max-width:270px;
+  max-width:280px;
 }
-
 #panel h1{margin:0 0 6px;font-size:24px}
 #panel p{margin:6px 0;font-size:14px}
-
 #panel button{
-  margin-top:14px;
-  padding:9px 22px;
-  border:none;
-  border-radius:999px;
-  background:#1a73e8;
-  color:#fff;
-  font-size:14px;
-  cursor:pointer;
+  margin-top:14px;padding:9px 22px;border:none;
+  border-radius:999px;background:#1a73e8;color:#fff;
 }
-
-#toggle{
-  margin-top:8px;
-  font-size:12px;
-  opacity:.7;
-  cursor:pointer;
-}
-
-#brand{
-  margin-top:10px;
-  font-size:11px;
-  opacity:.55;
-  letter-spacing:.4px;
-}
-
+#toggle{margin-top:8px;font-size:12px;opacity:.7;cursor:pointer}
+#brand{margin-top:10px;font-size:11px;opacity:.55}
 .confetti{
-  position:absolute;
-  width:8px;
-  height:8px;
-  animation: fall 1.4s ease-out forwards;
+  position:absolute;width:8px;height:8px;
+  animation:fall 1.4s ease-out forwards;
 }
-
 @keyframes fall{
-  to{
-    transform:translateY(140px) rotate(720deg);
-    opacity:0;
-  }
+  to{transform:translateY(140px) rotate(720deg);opacity:0}
 }
 </style>
 </head>
@@ -131,129 +80,87 @@ canvas{
 </div>
 
 <script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const grid = 20;
+const c=document.getElementById("game"),x=c.getContext("2d");
+const g=20;
+let s,f,dx,dy,sc,loop,run=false;
+let best=localStorage.getItem("snake-best")||0;
+let hc="#1a73e8",bc="#34a853",shake=0;
 
-let snake, food, dx, dy, score, loop, running=false;
-let bestScore = localStorage.getItem("snake-best") || 0;
+const title=titleEl=title,info=infoEl=info;
+bestEl=best;bestEl.textContent="Best: "+best;
 
-let headColor="#1a73e8", bodyColor="#34a853";
-
-const overlay = document.getElementById("overlay");
-const title = document.getElementById("title");
-const info = document.getElementById("info");
-const brand = document.getElementById("brand");
-const best = document.getElementById("best");
-
-best.textContent = "Best: " + bestScore;
-
-function roastByScore(s){
-  if(s<=2) return ["ABSOLUTE DISASTER 😭💀🤡🔥","​#ef4444"];
-  if(s<=6) return ["SKILL ISSUE CONFIRMED 😬🫠📉","​#f97316"];
-  if(s<=10) return ["REDEEM YOURSELF 👀🔥🎯","​#eab308"];
-  if(s<=15) return ["OKAY… NOT TERRIBLE 😎👍✨","​#22c55e"];
-  return ["RESPECT 🐐👑✨🔥","​#3b82f6"];
+function roast(score){
+  if(score===0) return ["ZERO POINTS 😭💀🤡 UNINSTALL","​#dc2626",true];
+  if(score<=2) return ["ABSOLUTE DISASTER 😭💀🔥","​#ef4444",true];
+  if(score<=6) return ["SKILL ISSUE 😬📉","​#f97316",true];
+  if(score<=10) return ["REDEEM YOURSELF 👀🔥🎯","​#eab308",false];
+  if(score<=15) return ["OKAY… NOT TERRIBLE 😎✨","​#22c55e",false];
+  if(score>=25 && Math.random()<0.4)
+    return ["YOU BROKE THE GAME 🐐👑🔥","​#3b82f6",false];
+  return ["RESPECT 🫡✨","​#3b82f6",false];
 }
 
 function start(){
-  snake=[{x:160,y:160}];
-  food=randomFood();
-  dx=grid; dy=0;
-  score=0;
-  running=true;
+  s=[{x:160,y:160}];f=rnd();dx=g;dy=0;sc=0;run=true;
   overlay.style.display="none";
-  clearInterval(loop);
-  loop=setInterval(tick,110);
+  clearInterval(loop);loop=setInterval(tick,110);
 }
 
-function gameOver(){
-  running=false;
-  clearInterval(loop);
-
-  if(score>bestScore){
-    bestScore=score;
-    localStorage.setItem("snake-best",bestScore);
-  }
-
-  const [msg,color]=roastByScore(score);
-  headColor=color;
-  bodyColor=color;
-
+function end(){
+  run=false;clearInterval(loop);
+  if(sc>best){best=sc;localStorage.setItem("snake-best",best);}
+  const [m,col,ang]=roast(sc);
+  hc=bc=col;shake=ang?10:0;
   title.textContent="Game Over";
-  info.textContent=msg;
-  best.textContent="Score: "+score+" | Best: "+bestScore;
+  info.textContent=m;
+  bestEl.textContent="Score: "+sc+" | Best: "+best;
   brand.textContent="Snake game by Vrishab Varun";
   overlay.style.display="flex";
-
-  if(msg.includes("REDEEM")){
-    confetti();
-  }
+  if(m.includes("REDEEM")) confetti();
 }
 
-function randomFood(){
-  return{
-    x:Math.floor(Math.random()*16)*grid,
-    y:Math.floor(Math.random()*16)*grid
-  };
-}
+function rnd(){return{x:Math.floor(Math.random()*16)*g,y:Math.floor(Math.random()*16)*g};}
 
-function drawSnake(){
-  snake.forEach((p,i)=>{
-    ctx.fillStyle=i===0?headColor:bodyColor;
-    ctx.beginPath();
-    ctx.roundRect(p.x,p.y,grid,grid,9);
-    ctx.fill();
+function draw(){
+  s.forEach((p,i)=>{
+    x.save();
+    if(i===0&&shake)x.translate(Math.sin(shake)*4,0);
+    x.fillStyle=i?bc:hc;
+    x.beginPath();x.roundRect(p.x,p.y,g,g,9);x.fill();
+    x.restore();
   });
+  if(shake)shake--;
 }
 
 function tick(){
-  const head={x:snake[0].x+dx,y:snake[0].y+dy};
-  if(head.x<0||head.y<0||head.x>=320||head.y>=320||
-     snake.some(s=>s.x===head.x&&s.y===head.y)){
-    gameOver(); return;
-  }
-
-  snake.unshift(head);
-  if(head.x===food.x&&head.y===food.y){
-    score++;
-    food=randomFood();
-  }else snake.pop();
-
-  ctx.clearRect(0,0,320,320);
-
-  ctx.fillStyle="#ea4335";
-  ctx.shadowColor="#ea4335";
-  ctx.shadowBlur=12;
-  ctx.beginPath();
-  ctx.arc(food.x+10,food.y+10,8,0,Math.PI*2);
-  ctx.fill();
-  ctx.shadowBlur=0;
-
-  drawSnake();
+  const h={x:s[0].x+dx,y:s[0].y+dy};
+  if(h.x<0||h.y<0||h.x>=320||h.y>=320||s.some(p=>p.x===h.x&&p.y===h.y))
+    return end();
+  s.unshift(h);
+  if(h.x===f.x&&h.y===f.y){sc++;f=rnd();}else s.pop();
+  x.clearRect(0,0,320,320);
+  x.fillStyle="#ea4335";x.shadowBlur=12;
+  x.beginPath();x.arc(f.x+10,f.y+10,8,0,Math.PI*2);x.fill();
+  x.shadowBlur=0;draw();
 }
 
 document.addEventListener("keydown",e=>{
-  if(!running) return;
-  if(e.key==="ArrowUp"&&dy===0){dx=0;dy=-grid;}
-  if(e.key==="ArrowDown"&&dy===0){dx=0;dy=grid;}
-  if(e.key==="ArrowLeft"&&dx===0){dx=-grid;dy=0;}
-  if(e.key==="ArrowRight"&&dx===0){dx=grid;dy=0;}
+  if(!run)return;
+  if(e.key==="ArrowUp"&&dy===0){dx=0;dy=-g}
+  if(e.key==="ArrowDown"&&dy===0){dx=0;dy=g}
+  if(e.key==="ArrowLeft"&&dx===0){dx=-g;dy=0}
+  if(e.key==="ArrowRight"&&dx===0){dx=g;dy=0}
 });
-
-function toggleTheme(){
-  document.body.classList.toggle("rainbow");
-}
-
+function toggleTheme(){document.body.classList.toggle("rainbow");}
 function confetti(){
   for(let i=0;i<35;i++){
-    const c=document.createElement("div");
-    c.className="confetti";
-    c.style.background=`hsl(${Math.random()*360},90%,60%)`;
-    c.style.left=(150+Math.random()*60)+"px";
-    c.style.top="140px";
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),1500);
+    const d=document.createElement("div");
+    d.className="confetti";
+    d.style.background=`hsl(${Math.random()*360},90%,60%)`;
+    d.style.left=(150+Math.random()*60)+"px";
+    d.style.top="140px";
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),1500);
   }
 }
 </script>

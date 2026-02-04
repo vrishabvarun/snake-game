@@ -11,7 +11,7 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  background: linear-gradient(135deg,#e8f0fe,#fef7e0,#e6f4ea);
+  background:linear-gradient(135deg,#e8f0fe,#fef7e0,#e6f4ea);
   background-size:400% 400%;
   animation:bg 18s ease infinite;
   font-family:system-ui,Arial;
@@ -50,6 +50,7 @@ canvas{
   border-radius:18px;
   box-shadow:0 25px 60px rgba(0,0,0,.3);
   text-align:center;
+  max-width:260px;
 }
 #panel h1{margin:0 0 6px;font-size:24px}
 #panel p{margin:6px 0;font-size:14px}
@@ -62,11 +63,21 @@ canvas{
   color:#fff;
   font-size:14px;
 }
+#brand{
+  margin-top:8px;
+  font-size:11px;
+  opacity:.5;
+}
 #toggle{
   margin-top:8px;
   font-size:12px;
   opacity:.7;
   cursor:pointer;
+}
+.confetti{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
 }
 </style>
 </head>
@@ -76,27 +87,38 @@ canvas{
   <canvas id="game" width="320" height="320"></canvas>
   <div id="overlay">
     <div id="panel">
-      <h1>Snake</h1>
-      <p>Use arrow keys or swipe</p>
+      <h1 id="title">Snake</h1>
+      <p id="message">Use arrow keys or swipe</p>
       <button onclick="start()">Play</button>
+      <div id="brand"></div>
       <div id="toggle" onclick="toggleTheme()">Toggle theme</div>
     </div>
   </div>
 </div>
 
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-const overlay = document.getElementById("overlay");
-const grid = 20;
+<canvas class="confetti" id="confetti"></canvas>
 
-let snake, food, dx, dy, loop, running=false;
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const overlay=document.getElementById("overlay");
+const title=document.getElementById("title");
+const message=document.getElementById("message");
+const brand=document.getElementById("brand");
+const grid=20;
+
+let snake,food,dx,dy,loop,running=false,score=0,roasted=false;
 
 function start(){
   snake=[{x:160,y:160}];
   food=randomFood();
-  dx=grid; dy=0;
+  dx=grid;dy=0;
+  score=0;
+  roasted=false;
   running=true;
+  title.textContent="Snake";
+  message.textContent="Use arrow keys or swipe";
+  brand.textContent="";
   overlay.style.display="none";
   clearInterval(loop);
   loop=setInterval(tick,120);
@@ -122,8 +144,8 @@ function drawSnake(){
       ctx.fill();
 
       ctx.fillStyle="#fff";
-      const ex = dx>0?13:dx<0?7:10;
-      const ey = dy>0?13:dy<0?7:10;
+      const ex=dx>0?13:dx<0?7:10;
+      const ey=dy>0?13:dy<0?7:10;
       ctx.beginPath();
       ctx.arc(p.x+ex,p.y+ey,2.5,0,Math.PI*2);
       ctx.fill();
@@ -134,7 +156,7 @@ function drawSnake(){
       ctx.arc(p.x+10,p.y+13,4,0,Math.PI);
       ctx.stroke();
     }else{
-      ctx.fillStyle=`hsl(${(i*30)%360},90%,55%)`;
+      ctx.fillStyle=roasted?"#555":`hsl(${(i*30)%360},90%,55%)`;
       ctx.beginPath();
       ctx.roundRect(p.x,p.y,grid,grid,8);
       ctx.fill();
@@ -142,40 +164,66 @@ function drawSnake(){
   });
 }
 
+function roast(){
+  let text="";
+  let conf=false;
+
+  if(score===0){
+    text="You didn’t even start 😭";
+    roasted=true;
+  }else if(score<5){
+    text="That was embarrassing 😬";
+    roasted=true;
+  }else if(score<10){
+    text="Skill issue detected 👀";
+  }else if(score<20){
+    text="Redeem yourself 👀🔥";
+    conf=true;
+  }else if(score>=25){
+    text="You are the snake 🐐";
+    conf=true;
+  }else{
+    text="Respect 🫡";
+  }
+
+  message.textContent=text;
+  brand.textContent="Snake Game by Vrishab Varun";
+  if(conf) launchConfetti();
+}
+
 function gameOver(){
   running=false;
   clearInterval(loop);
+  title.textContent="Game Over";
+  roast();
   overlay.style.display="flex";
 }
 
 function tick(){
   if(!running) return;
-
   const head={x:snake[0].x+dx,y:snake[0].y+dy};
 
   if(
-    head.x<0 || head.y<0 ||
-    head.x>=320 || head.y>=320 ||
-    snake.some(s=>s.x===head.x && s.y===head.y)
+    head.x<0||head.y<0||
+    head.x>=320||head.y>=320||
+    snake.some(s=>s.x===head.x&&s.y===head.y)
   ){
-    gameOver();
-    return;
+    gameOver(); return;
   }
 
   snake.unshift(head);
 
-  if(head.x===food.x && head.y===food.y){
+  if(head.x===food.x&&head.y===food.y){
+    score++;
     food=randomFood();
-  }else{
-    snake.pop();
-  }
+  }else snake.pop();
 
   ctx.clearRect(0,0,320,320);
 
   ctx.font="18px system-ui";
   ctx.textAlign="center";
   ctx.textBaseline="middle";
-  ctx.fillText("🍎", food.x+10, food.y+10);
+  ctx.fillText("🍎",food.x+10,food.y+10);
 
   drawSnake();
 }
@@ -188,31 +236,53 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowRight"&&dx===0){dx=grid;dy=0;}
 });
 
-// 📱 Swipe controls
-let sx=0, sy=0;
+// Swipe
+let sx=0,sy=0;
 canvas.addEventListener("touchstart",e=>{
-  const t=e.touches[0];
-  sx=t.clientX; sy=t.clientY;
+  const t=e.touches[0];sx=t.clientX;sy=t.clientY;
 });
 canvas.addEventListener("touchend",e=>{
   if(!running) return;
   const t=e.changedTouches[0];
   const dxs=t.clientX-sx;
   const dys=t.clientY-sy;
-
   if(Math.abs(dxs)>Math.abs(dys)){
-    if(dxs>0 && dx===0){dx=grid;dy=0;}
-    else if(dxs<0 && dx===0){dx=-grid;dy=0;}
+    if(dxs>0&&dx===0){dx=grid;dy=0;}
+    else if(dxs<0&&dx===0){dx=-grid;dy=0;}
   }else{
-    if(dys>0 && dy===0){dx=0;dy=grid;}
-    else if(dys<0 && dy===0){dx=0;dy=-grid;}
+    if(dys>0&&dy===0){dx=0;dy=grid;}
+    else if(dys<0&&dy===0){dx=0;dy=-grid;}
   }
 });
 
 function toggleTheme(){
   document.body.classList.toggle("rainbow");
 }
-</script>
 
+// Confetti
+function launchConfetti(){
+  const c=document.getElementById("confetti");
+  const x=c.getContext("2d");
+  c.width=innerWidth;c.height=innerHeight;
+  let p=[...Array(120)].map(()=>({
+    x:Math.random()*c.width,
+    y:Math.random()*c.height,
+    r:Math.random()*6+4,
+    d:Math.random()*360
+  }));
+  let t=0;
+  const a=setInterval(()=>{
+    x.clearRect(0,0,c.width,c.height);
+    p.forEach(o=>{
+      x.fillStyle=`hsl(${o.d},100%,60%)`;
+      x.beginPath();
+      x.arc(o.x,o.y,o.r,0,Math.PI*2);
+      x.fill();
+      o.y+=3;
+    });
+    if(++t>60){clearInterval(a);x.clearRect(0,0,c.width,c.height);}
+  },16);
+}
+</script>
 </body>
 </html>

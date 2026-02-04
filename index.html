@@ -8,9 +8,6 @@
 :root{
   --card:#ffffff;
   --board:#f1f3f4;
-  --head:#1a73e8;
-  --body:#34a853;
-  --food:#ea4335;
 }
 
 body{
@@ -21,25 +18,24 @@ body{
   justify-content:center;
   background: linear-gradient(135deg,#e8f0fe,#fef7e0,#e6f4ea);
   background-size:400% 400%;
-  animation: softFlow 20s ease infinite;
+  animation: bgFlow 18s ease infinite;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
 }
 
-@keyframes softFlow{
+@keyframes bgFlow{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}
 }
 
-/* 🌈 RAINBOW MODE */
 body.rainbow{
   background: linear-gradient(270deg,
     #ff0080,#7928ca,#2afadf,#4facfe,#43e97b,#facc15,#ff0080);
   background-size:600% 600%;
-  animation: rainbowFlow 10s ease infinite;
+  animation: rainbow 9s ease infinite;
 }
 
-@keyframes rainbowFlow{
+@keyframes rainbow{
   0%{background-position:0% 50%}
   50%{background-position:100% 50%}
   100%{background-position:0% 50%}
@@ -72,25 +68,18 @@ canvas{
   border-radius:18px;
   box-shadow:0 25px 60px rgba(0,0,0,.3);
   text-align:center;
-  max-width:260px;
+  max-width:270px;
 }
 
-#panel h1{
-  margin:0 0 6px;
-  font-size:24px;
-}
-
-#panel p{
-  margin:4px 0;
-  font-size:14px;
-}
+#panel h1{margin:0 0 6px;font-size:24px}
+#panel p{margin:6px 0;font-size:14px}
 
 #panel button{
   margin-top:14px;
   padding:9px 22px;
   border:none;
   border-radius:999px;
-  background:var(--head);
+  background:#1a73e8;
   color:#fff;
   font-size:14px;
   cursor:pointer;
@@ -108,6 +97,20 @@ canvas{
   font-size:11px;
   opacity:.55;
   letter-spacing:.4px;
+}
+
+.confetti{
+  position:absolute;
+  width:8px;
+  height:8px;
+  animation: fall 1.4s ease-out forwards;
+}
+
+@keyframes fall{
+  to{
+    transform:translateY(140px) rotate(720deg);
+    opacity:0;
+  }
 }
 </style>
 </head>
@@ -133,8 +136,9 @@ const ctx = canvas.getContext("2d");
 const grid = 20;
 
 let snake, food, dx, dy, score, loop, running=false;
-let blink=true, blinkTimer=0;
 let bestScore = localStorage.getItem("snake-best") || 0;
+
+let headColor="#1a73e8", bodyColor="#34a853";
 
 const overlay = document.getElementById("overlay");
 const title = document.getElementById("title");
@@ -142,18 +146,15 @@ const info = document.getElementById("info");
 const brand = document.getElementById("brand");
 const best = document.getElementById("best");
 
-const savageMessages = [
-  "That was embarrassing 😬",
-  "Skill issue detected",
-  "Google Snake is laughing",
-  "My grandma plays better",
-  "Press Play and redeem yourself",
-  "Oof. That hurt to watch",
-  "Maybe try using your eyes",
-  "Snake deserves a better driver"
-];
-
 best.textContent = "Best: " + bestScore;
+
+function roastByScore(s){
+  if(s<=2) return ["ABSOLUTE DISASTER 😭💀🤡🔥","​#ef4444"];
+  if(s<=6) return ["SKILL ISSUE CONFIRMED 😬🫠📉","​#f97316"];
+  if(s<=10) return ["REDEEM YOURSELF 👀🔥🎯","​#eab308"];
+  if(s<=15) return ["OKAY… NOT TERRIBLE 😎👍✨","​#22c55e"];
+  return ["RESPECT 🐐👑✨🔥","​#3b82f6"];
+}
 
 function start(){
   snake=[{x:160,y:160}];
@@ -161,7 +162,6 @@ function start(){
   dx=grid; dy=0;
   score=0;
   running=true;
-  brand.textContent="";
   overlay.style.display="none";
   clearInterval(loop);
   loop=setInterval(tick,110);
@@ -176,13 +176,19 @@ function gameOver(){
     localStorage.setItem("snake-best",bestScore);
   }
 
-  const msg = savageMessages[Math.floor(Math.random()*savageMessages.length)];
+  const [msg,color]=roastByScore(score);
+  headColor=color;
+  bodyColor=color;
 
   title.textContent="Game Over";
   info.textContent=msg;
   best.textContent="Score: "+score+" | Best: "+bestScore;
   brand.textContent="Snake game by Vrishab Varun";
   overlay.style.display="flex";
+
+  if(msg.includes("REDEEM")){
+    confetti();
+  }
 }
 
 function randomFood(){
@@ -194,26 +200,14 @@ function randomFood(){
 
 function drawSnake(){
   snake.forEach((p,i)=>{
-    ctx.fillStyle=i===0?"#1a73e8":"#34a853";
+    ctx.fillStyle=i===0?headColor:bodyColor;
     ctx.beginPath();
     ctx.roundRect(p.x,p.y,grid,grid,9);
     ctx.fill();
-
-    if(i===0 && blink){
-      ctx.fillStyle="#fff";
-      let ex = dx>0?13:dx<0?7:10;
-      let ey = dy>0?13:dy<0?7:10;
-      ctx.beginPath();
-      ctx.arc(p.x+ex,p.y+ey,2.6,0,Math.PI*2);
-      ctx.fill();
-    }
   });
 }
 
 function tick(){
-  blinkTimer++;
-  if(blinkTimer>15){ blink=!blink; blinkTimer=0; }
-
   const head={x:snake[0].x+dx,y:snake[0].y+dy};
   if(head.x<0||head.y<0||head.x>=320||head.y>=320||
      snake.some(s=>s.x===head.x&&s.y===head.y)){
@@ -249,6 +243,18 @@ document.addEventListener("keydown",e=>{
 
 function toggleTheme(){
   document.body.classList.toggle("rainbow");
+}
+
+function confetti(){
+  for(let i=0;i<35;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.background=`hsl(${Math.random()*360},90%,60%)`;
+    c.style.left=(150+Math.random()*60)+"px";
+    c.style.top="140px";
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),1500);
+  }
 }
 </script>
 </body>

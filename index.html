@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Snake Game</title>
+<title>Snake</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body{
@@ -12,18 +12,18 @@ body{
   align-items:center;
   justify-content:center;
   background: radial-gradient(circle at top,#e8f0fe,#fce8e6,#e6f4ea);
-  font-family: Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
 }
 #card{
   background:#fff;
-  border-radius:18px;
+  border-radius:20px;
   padding:18px;
-  box-shadow:0 30px 60px rgba(0,0,0,.2);
-  text-align:center;
+  box-shadow:0 30px 70px rgba(0,0,0,.25);
+  position:relative;
 }
 canvas{
   background:#f1f3f4;
-  border-radius:14px;
+  border-radius:16px;
 }
 #overlay{
   position:absolute;
@@ -34,15 +34,22 @@ canvas{
 }
 #panel{
   background:#fff;
-  padding:22px 26px;
-  border-radius:16px;
-  box-shadow:0 20px 50px rgba(0,0,0,.25);
+  padding:24px 28px;
+  border-radius:18px;
+  box-shadow:0 25px 60px rgba(0,0,0,.3);
+  text-align:center;
 }
-#panel h1{margin:0 0 10px;font-size:22px;}
-#panel p{margin:6px 0;font-size:14px;}
+#panel h1{
+  margin:0 0 10px;
+  font-size:24px;
+}
+#panel p{
+  margin:6px 0;
+  font-size:14px;
+}
 #panel button{
-  margin-top:12px;
-  padding:8px 18px;
+  margin-top:14px;
+  padding:9px 20px;
   border:none;
   border-radius:999px;
   background:#1a73e8;
@@ -50,11 +57,12 @@ canvas{
   font-size:14px;
   cursor:pointer;
 }
+#panel button:hover{background:#1558b0}
 #brand{
-  margin-top:8px;
+  margin-top:10px;
   font-size:11px;
-  opacity:.6;
-  letter-spacing:.3px;
+  opacity:.55;
+  letter-spacing:.4px;
 }
 </style>
 </head>
@@ -62,14 +70,13 @@ canvas{
 
 <div id="card">
   <canvas id="game" width="320" height="320"></canvas>
-</div>
-
-<div id="overlay">
-  <div id="panel">
-    <h1 id="title">Snake</h1>
-    <p id="scoreText"></p>
-    <button onclick="start()">Play</button>
-    <div id="brand"></div>
+  <div id="overlay">
+    <div id="panel">
+      <h1 id="title">Snake</h1>
+      <p id="info">Use arrow keys</p>
+      <button onclick="start()">Play</button>
+      <div id="brand"></div>
+    </div>
   </div>
 </div>
 
@@ -81,7 +88,7 @@ const grid = 20;
 let snake, food, dx, dy, score, loop, running=false;
 const overlay = document.getElementById("overlay");
 const title = document.getElementById("title");
-const scoreText = document.getElementById("scoreText");
+const info = document.getElementById("info");
 const brand = document.getElementById("brand");
 
 function start(){
@@ -90,6 +97,7 @@ function start(){
   dx=grid; dy=0;
   score=0;
   running=true;
+  brand.textContent="";
   overlay.style.display="none";
   clearInterval(loop);
   loop=setInterval(tick,110);
@@ -99,7 +107,7 @@ function gameOver(){
   running=false;
   clearInterval(loop);
   title.textContent="Game Over";
-  scoreText.textContent="Score: "+score;
+  info.textContent="Score: "+score;
   brand.textContent="Snake game by Vrishab Varun";
   overlay.style.display="flex";
 }
@@ -115,7 +123,7 @@ function drawSnake(){
   snake.forEach((p,i)=>{
     ctx.fillStyle=i===0?"#1a73e8":"#34a853";
     ctx.beginPath();
-    ctx.roundRect(p.x,p.y,grid,grid,8);
+    ctx.roundRect(p.x,p.y,grid,grid,9);
     ctx.fill();
 
     if(i===0){
@@ -123,7 +131,7 @@ function drawSnake(){
       let ex = dx>0?13:dx<0?7:10;
       let ey = dy>0?13:dy<0?7:10;
       ctx.beginPath();
-      ctx.arc(p.x+ex,p.y+ey,2.5,0,Math.PI*2);
+      ctx.arc(p.x+ex,p.y+ey,2.6,0,Math.PI*2);
       ctx.fill();
     }
   });
@@ -144,9 +152,12 @@ function tick(){
   ctx.clearRect(0,0,320,320);
 
   ctx.fillStyle="#ea4335";
+  ctx.shadowColor="#ea4335";
+  ctx.shadowBlur=10;
   ctx.beginPath();
   ctx.arc(food.x+10,food.y+10,8,0,Math.PI*2);
   ctx.fill();
+  ctx.shadowBlur=0;
 
   drawSnake();
 }
@@ -158,9 +169,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="ArrowLeft"&&dx===0){dx=-grid;dy=0;}
   if(e.key==="ArrowRight"&&dx===0){dx=grid;dy=0;}
 });
-
-title.textContent="Snake";
-scoreText.textContent="Use arrow keys";
 </script>
+
 </body>
 </html>

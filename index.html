@@ -1,37 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Snake Game | Vrishab Varun</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       margin: 0;
-      background: #f1f3f4;
-      font-family: Arial, sans-serif;
+      height: 100vh;
+      background: linear-gradient(180deg, #e8f0fe, #f1f3f4);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      font-family: Arial, sans-serif;
     }
 
     .container {
       background: #ffffff;
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      width: 360px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
       text-align: center;
+      width: 360px;
     }
 
     h1 {
       font-size: 18px;
       margin: 6px 0 10px;
+      font-weight: 600;
     }
 
     canvas {
       background: #e6e6e6;
-      border-radius: 8px;
+      border-radius: 12px;
       display: block;
       margin: 0 auto;
     }
@@ -43,11 +44,11 @@
 
     button {
       margin-top: 10px;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       background: #1a73e8;
-      color: white;
+      color: #fff;
       font-size: 14px;
       cursor: pointer;
     }
@@ -59,7 +60,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>🐍 Snake by Vrishab Varun</h1>
+    <h1>Snake game by Vrishab Varun</h1>
     <canvas id="game" width="320" height="320"></canvas>
     <div class="info">
       Score: <span id="score">0</span> |
@@ -96,6 +97,21 @@
       };
     }
 
+    function drawSnakePart(part, isHead) {
+      ctx.fillStyle = isHead ? "#1a73e8" : "#34a853";
+      ctx.fillRect(part.x, part.y, grid, grid);
+
+      if (isHead) {
+        ctx.fillStyle = "#fff";
+        const eyeOffsetX = dx !== 0 ? (dx > 0 ? 12 : 4) : 8;
+        const eyeOffsetY = dy !== 0 ? (dy > 0 ? 12 : 4) : 8;
+
+        ctx.beginPath();
+        ctx.arc(part.x + eyeOffsetX, part.y + eyeOffsetY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     function gameLoop() {
       const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
@@ -128,10 +144,7 @@
       ctx.fillStyle = "#d93025";
       ctx.fillRect(food.x, food.y, grid, grid);
 
-      snake.forEach((part, i) => {
-        ctx.fillStyle = i === 0 ? "#1a73e8" : "#34a853";
-        ctx.fillRect(part.x, part.y, grid, grid);
-      });
+      snake.forEach((part, i) => drawSnakePart(part, i === 0));
     }
 
     document.addEventListener("keydown", e => {
